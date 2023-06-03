@@ -1,0 +1,30 @@
+name: CI
+on: [push]
+env:
+  CARGO_INCREMENTAL: 0
+jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cargo fmt
+        run: cargo fmt --all -- --check
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v2
+      - name: Cargo check
+        run: cargo check
+      - run: cargo test --workspace
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Add clippy
+        run: rustup component add clippy
+      - name: Run lint
+        run: cargo clippy
