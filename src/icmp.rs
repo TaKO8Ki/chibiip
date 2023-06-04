@@ -115,7 +115,7 @@ impl Icmp {
         debug!(?send_fd, ?ifindex);
         let sockaddr = &nix::libc::sockaddr_ll {
             sll_family: nix::libc::AF_PACKET as nix::libc::sa_family_t,
-            sll_protocol: (nix::libc::ETH_P_ALL as u16).to_be(),
+            sll_protocol: (nix::libc::ETH_P_IP as u16).to_be(),
             sll_ifindex: ifindex as i32,
             sll_hatype: 0,
             sll_pkttype: 0,
