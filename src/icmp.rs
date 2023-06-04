@@ -104,7 +104,12 @@ impl Icmp {
         byte
     }
 
-    fn send(&self, [a, b, c, d, e, f]: [u8; 6], packet: Vec<u8>, ifindex: usize) -> Option<Self> {
+    fn send(
+        &self,
+        [a, b, c, d, e, f]: [u8; 6],
+        packet: Vec<u8>,
+        ifindex: usize,
+    ) -> Result<Self, String> {
         let send_fd = socket(
             AddressFamily::Packet,
             SockType::Raw,
@@ -144,14 +149,23 @@ impl Icmp {
                         debug!(?recv_buf, ?ret, ?addr);
                         if recv_buf[23] == 0x01 {
                             close(send_fd).unwrap();
-                            // return parseICMP(recvBuf[34:])
+                            return Ok(Self::parse_icmp(&recv_buf[34..]));
                         }
                     }
                 }
-                Err(err) => panic!("recvfrom error: {}", err),
+                Err(err) => return Err(format!("recvfrom error: {}", err)),
             }
         }
+    }
 
-        None
+    fn parse_icmp(packet: &[u8]) -> Self {
+        Self {
+            r#type: vec![packet[0]],
+            code: vec![packet[1]],
+            check_sum: [packet[2], packet[3]],
+            identification: vec![packet[4], packet[5]],
+            sequence_number: vec![packet[6], packet[7]],
+            data: vec![packet[8], packet[9]],
+        }
     }
 }
