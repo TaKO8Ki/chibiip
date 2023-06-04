@@ -2,6 +2,7 @@ mod arp;
 mod ether;
 mod icmp;
 mod ip;
+mod socket;
 mod utils;
 
 fn main() {

@@ -1,6 +1,7 @@
 use crate::arp::Arp;
 use crate::ether::{EthType, EthernetFrame};
 use crate::ip::{IpHeader, IpProtocol};
+use crate::socket::channel;
 use crate::utils::{checksum, get_local_ip_addr, iptobyte, sum_byte_arr};
 
 use nix::sys::socket::{
@@ -110,46 +111,18 @@ impl Icmp {
         packet: Vec<u8>,
         ifindex: usize,
     ) -> Result<Self, String> {
-        let send_fd = socket(
-            AddressFamily::Packet,
-            SockType::Raw,
-            SockFlag::empty(),
-            SockProtocol::EthAll,
-        )
-        .unwrap();
-        debug!(?send_fd, ?ifindex);
-        let sockaddr = &nix::libc::sockaddr_ll {
-            sll_family: nix::libc::AF_PACKET as nix::libc::sa_family_t,
-            sll_protocol: (nix::libc::ETH_P_IP as u16).to_be(),
-            sll_ifindex: ifindex as i32,
-            sll_hatype: 0,
-            sll_pkttype: 0,
-            sll_halen: 6,
-            sll_addr: [a, b, c, d, e, f, 0, 0],
-        };
-        let addr = unsafe {
-            LinkAddr::from_raw(
-                sockaddr as *const nix::libc::sockaddr_ll as *const nix::libc::sockaddr,
-                None,
-            )
-            .unwrap()
-        };
-        debug!(?addr);
-        bind(send_fd, &addr).unwrap();
-
-        let ret = sendto(send_fd, &packet, &addr, MsgFlags::empty()).unwrap();
+        let (sender, mut receiver) = channel(ifindex, [a, b, c, d, e, f]);
+        let ret = sender.sendto(packet).unwrap();
         debug!(?ret);
         debug!("receiving.......");
 
-        let mut recv_buf = vec![0; 4096];
         loop {
-            match recvfrom::<SockaddrStorage>(send_fd, &mut recv_buf) {
+            match receiver.recvfrom() {
                 Ok((ret, addr)) => {
-                    if !recv_buf.is_empty() {
-                        debug!(?recv_buf, ?ret, ?addr);
-                        if recv_buf[23] == 0x01 {
-                            close(send_fd).unwrap();
-                            return Ok(Self::parse_icmp(&recv_buf[34..]));
+                    if !receiver.buf.is_empty() {
+                        debug!(?receiver.buf, ?ret, ?addr);
+                        if receiver.buf[23] == 0x01 {
+                            return Ok(Self::parse_icmp(&receiver.buf[34..]));
                         }
                     }
                 }
