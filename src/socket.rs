@@ -78,7 +78,7 @@ pub fn channel(ifindex: usize, [a, b, c, d, e, f]: [u8; 6]) -> (Sender, Receiver
         addr,
     };
     let receiver = Receiver {
-        socket: fd.clone(),
+        socket: fd,
         buf: vec![0; 4096],
     };
     (sender, receiver)

@@ -1,14 +1,10 @@
 use crate::arp::Arp;
 use crate::ether::{EthType, EthernetFrame};
 use crate::ip::{IpHeader, IpProtocol};
+use crate::net::get_local_ip_addr;
 use crate::socket::channel;
-use crate::utils::{checksum, get_local_ip_addr, iptobyte, sum_byte_arr};
+use crate::utils::{checksum, iptobyte, sum_byte_arr};
 
-use nix::sys::socket::{
-    bind, recvfrom, sendto, socket, AddressFamily, LinkAddr, MsgFlags, SockFlag, SockProtocol,
-    SockType, SockaddrLike, SockaddrStorage,
-};
-use nix::unistd::close;
 use tracing::debug;
 
 struct Icmp {
@@ -21,21 +17,21 @@ struct Icmp {
 }
 
 pub fn send_icmp(ifname: &str, target_ip: &str) {
-    let (mac_addr, ip_addr, ifindex) = get_local_ip_addr(Some(ifname)).unwrap();
+    let ni = get_local_ip_addr(Some(ifname)).unwrap().unwrap();
     debug!(
         "ip_addr={:?}, target_ip={:?}",
-        ip_addr.unwrap().to_be_bytes().to_vec(),
+        ni.ip_addr.to_be_bytes().to_vec(),
         iptobyte(target_ip)
     );
 
     let ethernet = EthernetFrame::new(
         vec![0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
-        mac_addr.unwrap().to_vec(),
+        ni.mac_addr.to_vec(),
         EthType::Arp,
     );
     let arp_req = Arp::new(
-        mac_addr.unwrap().to_vec(),
-        ip_addr.unwrap().to_be_bytes().to_vec(),
+        ni.mac_addr.to_vec(),
+        ni.ip_addr.to_be_bytes().to_vec(),
         iptobyte(target_ip),
     );
 
@@ -44,13 +40,11 @@ pub fn send_icmp(ifname: &str, target_ip: &str) {
     send_arp.append(&mut arp_req.to_byte_array());
     debug!(?send_arp);
 
-    let arpreply = arp_req
-        .send(mac_addr.unwrap(), send_arp, ifindex.unwrap())
-        .unwrap();
+    let arpreply = arp_req.send(ni.mac_addr, send_arp, ni.ifindex).unwrap();
 
     let icmp_packet = Icmp::new();
     let mut header = IpHeader::new(
-        ip_addr.unwrap().to_be_bytes().to_vec(),
+        ni.ip_addr.to_be_bytes().to_vec(),
         iptobyte(target_ip),
         IpProtocol::Ip,
     );
@@ -62,7 +56,7 @@ pub fn send_icmp(ifname: &str, target_ip: &str) {
     send_icmp.append(
         &mut EthernetFrame::new(
             arpreply.sender_mac_addr,
-            mac_addr.unwrap().to_vec(),
+            ni.mac_addr.to_vec(),
             EthType::Ipv4,
         )
         .to_byte_array(),
@@ -72,7 +66,7 @@ pub fn send_icmp(ifname: &str, target_ip: &str) {
     debug!(?send_icmp);
 
     let icmp_reply = icmp_packet
-        .send(mac_addr.unwrap(), send_icmp, ifindex.unwrap())
+        .send(ni.mac_addr, send_icmp, ni.ifindex)
         .unwrap();
     if icmp_reply.r#type[0] == 0 {
         println!("ICMP Reply is {}, OK!", icmp_reply.r#type[0]);
