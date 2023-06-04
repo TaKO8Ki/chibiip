@@ -137,13 +137,18 @@ impl Icmp {
         debug!("receiving.......");
 
         let mut recv_buf = vec![0; 4096];
-        while let Ok((ret, addr)) = recvfrom::<SockaddrStorage>(send_fd, &mut recv_buf) {
-            if !recv_buf.is_empty() {
-                debug!(?recv_buf, ?ret, ?addr);
-                if recv_buf[23] == 0x01 {
-                    close(send_fd);
-                    // return parseICMP(recvBuf[34:])
+        loop {
+            match recvfrom::<SockaddrStorage>(send_fd, &mut recv_buf) {
+                Ok((ret, addr)) => {
+                    if !recv_buf.is_empty() {
+                        debug!(?recv_buf, ?ret, ?addr);
+                        if recv_buf[23] == 0x01 {
+                            close(send_fd).unwrap();
+                            // return parseICMP(recvBuf[34:])
+                        }
+                    }
                 }
+                Err(err) => panic!("recvfrom error: {}", err),
             }
         }
 
