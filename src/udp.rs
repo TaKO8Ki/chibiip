@@ -97,7 +97,7 @@ pub fn send_udp(ifname: &str, target_ip: &str) {
     let arpreply = arp_req.send(ni.mac_addr, send_arp, ni.ifindex).unwrap();
 
     let source_port: u16 = 42279;
-    let dest_port: u16 = 10;
+    let dest_port: u16 = 80;
     let mut udp_header = UdpHeader::new(source_port.to_be_bytes(), dest_port.to_be_bytes());
     let udpdata = "foobar".as_bytes();
     let mut header = IpHeader::new(
