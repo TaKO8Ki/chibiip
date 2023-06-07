@@ -103,7 +103,7 @@ pub fn send_udp(ifname: &str, target_ip: &str) {
     let mut header = IpHeader::new(
         ni.ip_addr.to_be_bytes().to_vec(),
         iptobyte(target_ip),
-        IpProtocol::Ip,
+        IpProtocol::Udp,
     );
     header.total_packet_length =
         ((header.to_byte_array().len() + udp_header.to_byte_array().len() + udpdata.len()) as u16)
