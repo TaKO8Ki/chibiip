@@ -17,6 +17,7 @@ struct Icmp {
 }
 
 pub fn send_icmp(ifname: &str, target_ip: &str) {
+    debug!(?ifname, ?target_ip);
     let ni = get_local_ip_addr(Some(ifname)).unwrap().unwrap();
     debug!(
         "ip_addr={:?}, target_ip={:?}",
