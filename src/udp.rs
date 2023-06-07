@@ -40,13 +40,8 @@ impl UdpHeader {
         byte
     }
 
-    fn send(
-        &self,
-        [a, b, c, d, e, f]: [u8; 6],
-        packet: Vec<u8>,
-        ifindex: usize,
-    ) -> Result<(), String> {
-        let (sender, _) = channel(ifindex, [a, b, c, d, e, f]);
+    fn send(&self, local_mac_addr: [u8; 6], packet: Vec<u8>, ifindex: usize) -> Result<(), String> {
+        let (sender, _) = channel(ifindex, local_mac_addr);
         let ret = sender.sendto(packet).unwrap();
         debug!(?ret);
         debug!("udp packet sent");
