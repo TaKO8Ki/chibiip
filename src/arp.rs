@@ -22,7 +22,7 @@ pub struct Arp {
     target_ip_addr: Vec<u8>,
 }
 
-fn send_arp(ifname: &str, target_ip: &str) {
+pub fn send_arp(ifname: &str, target_ip: &str) {
     let ni = get_local_ip_addr(Some(ifname)).unwrap().unwrap();
     debug!(
         "ip_addr={:?}, target_ip={:?}",
@@ -47,6 +47,7 @@ fn send_arp(ifname: &str, target_ip: &str) {
     debug!(?send_arp);
 
     let arpreply = arp_req.send(ni.mac_addr, send_arp, ni.ifindex).unwrap();
+    println!("arp reply: {}", arpreply.get_sender_hw_addr());
 }
 
 impl Arp {
