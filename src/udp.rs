@@ -100,7 +100,7 @@ pub fn send_udp(ifname: &str, target_ip: &str) {
     let udpdata = "foobar".as_bytes();
     let mut header = IpHeader::new(
         ni.ip_addr.to_be_bytes().to_vec(),
-        iptobyte(target_ip),
+        ni.ip_addr.to_be_bytes().to_vec(),
         IpProtocol::Ip,
     );
     header.total_packet_length =
@@ -122,7 +122,7 @@ pub fn send_udp(ifname: &str, target_ip: &str) {
 
     let mut packet = vec![];
     packet.append(
-        &mut EthernetFrame::new(arp_req.sender_mac_addr, ni.mac_addr.to_vec(), EthType::Ipv4)
+        &mut EthernetFrame::new(ni.mac_addr.to_vec(), ni.mac_addr.to_vec(), EthType::Ipv4)
             .to_byte_array(),
     );
     packet.append(&mut header.to_byte_array());
