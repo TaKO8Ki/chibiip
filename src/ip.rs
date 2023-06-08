@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct IpHeader {
     version_and_header_lenght: Vec<u8>,
     service_type: Vec<u8>,
@@ -7,8 +8,8 @@ pub struct IpHeader {
     ttl: Vec<u8>,
     protocol: Vec<u8>,
     pub check_sum: [u8; 2],
-    source_ip_addr: Vec<u8>,
-    dst_ip_addr: Vec<u8>,
+    pub source_ip_addr: Vec<u8>,
+    pub dst_ip_addr: Vec<u8>,
 }
 
 pub enum IpProtocol {

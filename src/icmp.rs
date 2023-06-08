@@ -17,6 +17,7 @@ struct Icmp {
 }
 
 pub fn send_icmp(ifname: &str, target_ip: &str) {
+    debug!(?ifname, ?target_ip);
     let ni = get_local_ip_addr(Some(ifname)).unwrap().unwrap();
     debug!(
         "ip_addr={:?}, target_ip={:?}",
@@ -101,11 +102,11 @@ impl Icmp {
 
     fn send(
         &self,
-        [a, b, c, d, e, f]: [u8; 6],
+        local_mac_addr: [u8; 6],
         packet: Vec<u8>,
         ifindex: usize,
     ) -> Result<Self, String> {
-        let (sender, mut receiver) = channel(ifindex, [a, b, c, d, e, f]);
+        let (sender, mut receiver) = channel(ifindex, local_mac_addr);
         let ret = sender.sendto(packet).unwrap();
         debug!(?ret);
         debug!("receiving.......");
