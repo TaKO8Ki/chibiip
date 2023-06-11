@@ -4,6 +4,7 @@ mod icmp;
 mod ip;
 mod net;
 mod socket;
+mod tcp;
 mod udp;
 mod utils;
 
