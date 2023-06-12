@@ -1,8 +1,10 @@
+use std::os::fd::RawFd;
+
 use crate::{
     ip::IpHeader,
     utils::{checksum, iptobyte, sum_byte_arr},
 };
-use nix::sys::socket::{sendto, MsgFlags, SockaddrIn};
+use nix::sys::socket::{recvfrom, sendto, socket, MsgFlags, SockaddrIn};
 use rand::Rng;
 use tracing::debug;
 
@@ -21,8 +23,8 @@ pub struct TcpHeader {
 }
 
 pub struct TcpDummyHeader {
-    source_ip_addr: Vec<u8>,
-    dst_ip_addr: Vec<u8>,
+    source_ip_addr: [u8; 4],
+    dst_ip_addr: [u8; 4],
     protocol: [u8; 2],
     length: [u8; 2],
 }
@@ -39,8 +41,8 @@ impl TcpDummyHeader {
 
     fn to_byte_array(&self) -> Vec<u8> {
         let mut byte = vec![];
-        byte.append(&mut self.source_ip_addr.clone());
-        byte.append(&mut self.dst_ip_addr.clone());
+        byte.append(&mut self.source_ip_addr.to_vec());
+        byte.append(&mut self.dst_ip_addr.to_vec());
         byte.append(&mut self.protocol.to_vec());
         byte.append(&mut self.length.to_vec());
         byte
@@ -85,6 +87,22 @@ impl TcpHeader {
         }
     }
 
+    fn parse(buf: Vec<u8>) -> Self {
+        Self {
+            source_port: [buf[0], buf[1]],
+            dest_port: [buf[2], buf[3]],
+            sequence_number: [buf[4], buf[5], buf[6], buf[7]],
+            acknowlege_number: [buf[8], buf[9], buf[10], buf[11]],
+            header_length: buf[12],
+            control_flags: buf[13],
+            window_size: [buf[14], buf[15]],
+            checksum: [buf[16], buf[17]],
+            urgent_pointer: [buf[18], buf[19]],
+            tcp_option_byte: vec![],
+            tcp_data: vec![],
+        }
+    }
+
     fn to_byte_array(&self) -> Vec<u8> {
         let mut byte = vec![];
         byte.append(&mut self.source_port.to_vec());
@@ -102,6 +120,7 @@ impl TcpHeader {
     }
 }
 
+#[derive(Debug)]
 struct TcpIp {
     dest_ip: String,
     dest_port: u16,
@@ -176,7 +195,10 @@ impl TcpIp {
         tcpip_packet
     }
 
-    fn start_tcp_connection(&self, send_fd: i32) -> Result<Option<Self>, Box<dyn std::error::Error>> {
+    fn start_tcp_connection(
+        &self,
+        send_fd: RawFd,
+    ) -> Result<Option<Self>, Box<dyn std::error::Error>> {
         let syn_packet = self.tcp_ip_packet();
         let dest_ip = iptobyte(&self.dest_ip);
         let dest_port = self.dest_port.to_be_bytes();
@@ -189,35 +211,90 @@ impl TcpIp {
         let ret = sendto(send_fd, &syn_packet, &addr, MsgFlags::empty()).unwrap();
         debug!("Send SYN packet");
 
-        let synack = RecvIPSocket(sendfd, destIp, destPort);
+        let synack = recv_ip_socket(send_fd, dest_ip);
 
         // 0x12 = SYNACK, 0x11 = FINACK, 0x10 = ACK
-        if synack.ControlFlags[0] == SYNACK
-            || synack.ControlFlags[0] == FINACK
-            || synack.ControlFlags[0] == ACK
+        if synack.control_flags == SYNACK
+            || synack.control_flags == FINACK
+            || synack.control_flags == ACK
         {
             let ack = TcpIp {
-                dest_ip: self.dest_ip,
+                dest_ip: self.dest_ip.clone(),
                 dest_port: self.dest_port,
                 tcp_flag: TcpFlag::Ack,
                 seq_number: synack.acknowlege_number,
                 ack_number: calc_sequence_number(synack.sequence_number, 1),
                 data: vec![],
             };
-            let ack_packet = 
-            ack.tcp_ip_packet();
+            let ack_packet = ack.tcp_ip_packet();
             let ret = sendto(send_fd, &ack_packet, &addr, MsgFlags::empty()).unwrap();
-            return Ok(Some(ack))
+            return Ok(Some(ack));
         }
 
         Ok(None)
     }
+
+    fn synack_finack(&self) {
+        use nix::sys::socket::{AddressFamily, SockFlag, SockProtocol, SockType};
+
+        let localip = "127.0.0.1";
+        let port = 8080;
+
+        let syn = TcpIp {
+            dest_ip: localip.to_string(),
+            dest_port: port,
+            tcp_flag: TcpFlag::Ack,
+            seq_number: [0; 4],
+            ack_number: [0; 4],
+            data: vec![],
+        };
+
+        let send_fd = socket(
+            AddressFamily::Inet,
+            SockType::Raw,
+            SockFlag::empty(),
+            SockProtocol::Tcp,
+        )
+        .unwrap();
+        // defer syscall.Close(sendfd)
+        let ack = syn.start_tcp_connection(send_fd).unwrap().unwrap();
+        debug!("TCP Connection is success!!");
+        // time.Sleep(10 * time.Millisecond);
+
+        let fin = TcpIp {
+            dest_ip: localip.to_string(),
+            dest_port: port,
+            tcp_flag: TcpFlag::FinAck,
+            seq_number: ack.seq_number,
+            ack_number: ack.ack_number,
+            data: vec![],
+        };
+        fin.start_tcp_connection(send_fd).unwrap();
+        debug!("TCP Connection Close is success!!");
+    }
 }
 
-fn calc_sequence_number(packet: Vec<u8>, add: u32) -> [u8; 4] {
-	let sum = packet + add;
+fn calc_sequence_number(packet: [u8; 4], add: u32) -> [u8; 4] {
+    let sum = ((packet[0] as u32) << 24)
+        | ((packet[1] as u32) << 16)
+        | ((packet[2] as u32) << 8)
+        | packet[3] as u32 + add;
 
-	b := make([]byte, 4);
-	binary.BigEndian.PutUint32(b, sum)
-	b
+    sum.to_be_bytes()
+}
+
+fn recv_ip_socket(fd: RawFd, dest_ip: [u8; 4]) -> TcpHeader {
+    let mut buf = Vec::with_capacity(128);
+    loop {
+        let (ret, addr) = recvfrom::<SockaddrIn>(fd, &mut buf).unwrap();
+        debug!(?ret, ?addr);
+        let ip = IpHeader::parse(buf[0..20].to_vec());
+        if ip.protocol == 0x06 && ip.source_ip_addr == dest_ip {
+            let synack = TcpHeader::parse(buf[20..].to_vec());
+            if synack.control_flags == SYNACK {
+                debug!("recv {:?}", &buf[20..]);
+                return synack;
+            }
+        }
+    }
 }

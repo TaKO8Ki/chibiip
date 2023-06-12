@@ -15,8 +15,8 @@ struct UdpHeader {
 }
 
 struct UdpDummyHeader {
-    source_ip_addr: Vec<u8>,
-    dst_ip_addr: Vec<u8>,
+    source_ip_addr: [u8; 4],
+    dst_ip_addr: [u8; 4],
     protocol: Vec<u8>,
     length: [u8; 2],
 }
@@ -85,7 +85,7 @@ pub fn send_udp(ifname: &str, target_ip: &str) {
     );
     let arp_req = Arp::new(
         ni.mac_addr.to_vec(),
-        ni.ip_addr.to_be_bytes().to_vec(),
+        ni.ip_addr.to_be_bytes(),
         iptobyte(target_ip),
     );
 
@@ -101,7 +101,7 @@ pub fn send_udp(ifname: &str, target_ip: &str) {
     let mut udp_header = UdpHeader::new(source_port.to_be_bytes(), dest_port.to_be_bytes());
     let udpdata = "foobar".as_bytes();
     let mut header = IpHeader::new(
-        ni.ip_addr.to_be_bytes().to_vec(),
+        ni.ip_addr.to_be_bytes(),
         iptobyte(target_ip),
         IpProtocol::Udp,
     );

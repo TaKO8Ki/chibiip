@@ -1,3 +1,5 @@
+use core::panic;
+
 pub fn sum_byte_arr(arr: Vec<u8>) -> usize {
     let mut sum = 0;
     for i in arr.chunks(2) {
@@ -14,13 +16,15 @@ pub fn checksum(sum: usize) -> [u8; 2] {
     (checksum as u16).to_be_bytes()
 }
 
-pub fn iptobyte(ip: &str) -> Vec<u8> {
-    let mut ipbyte = vec![];
-    for v in ip.split('.') {
-        let i = v.parse::<usize>().unwrap();
-        ipbyte.push(i as u8)
+pub fn iptobyte(ip: &str) -> [u8; 4] {
+    match ip
+        .split('.')
+        .map(|v| v.parse::<usize>().unwrap())
+        .collect::<Vec<_>>()[..]
+    {
+        [a, b, c, d] => [a as u8, b as u8, c as u8, d as u8],
+        _ => panic!("Invalid IP address: {}", ip),
     }
-    ipbyte
 }
 
 #[cfg(test)]
