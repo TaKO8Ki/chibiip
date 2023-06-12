@@ -259,15 +259,15 @@ impl TcpIp {
         )
         .unwrap();
         // syscall.SetsockoptInt(sendfd, syscall.IPPROTO_IP, syscall.IP_HDRINCL, 1)
-        unsafe {
-            nix::libc::setsockopt(
-                send_fd,
-                nix::libc::IPPROTO_IP,
-                nix::libc::IP_HDRINCL,
-                1 as *const nix::libc::c_void,
-                std::mem::size_of::<nix::libc::c_int>() as nix::libc::socklen_t,
-            )
-        };
+        // unsafe {
+        //     nix::libc::setsockopt(
+        //         send_fd,
+        //         nix::libc::IPPROTO_IP,
+        //         nix::libc::IP_HDRINCL,
+        //         1 as *const nix::libc::c_void,
+        //         std::mem::size_of::<nix::libc::c_int>() as nix::libc::socklen_t,
+        //     )
+        // };
         // defer syscall.Close(sendfd)
         let ack = syn.start_tcp_connection(send_fd).unwrap().unwrap();
         debug!("TCP Connection is success!!");
