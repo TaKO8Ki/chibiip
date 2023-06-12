@@ -265,7 +265,7 @@ impl TcpIp {
                 nix::libc::IPPROTO_IP,
                 nix::libc::IP_HDRINCL,
                 1 as *const nix::libc::c_void,
-                1,
+                std::mem::size_of::<nix::libc::c_int>() as nix::libc::socklen_t,
             )
         };
         // defer syscall.Close(sendfd)
