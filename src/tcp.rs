@@ -4,7 +4,10 @@ use crate::{
     ip::IpHeader,
     utils::{checksum, iptobyte, sum_byte_arr},
 };
-use nix::sys::socket::{recvfrom, sendto, socket, MsgFlags, SockaddrIn};
+use nix::{
+    sys::socket::{recvfrom, sendto, socket, MsgFlags, SockaddrIn},
+    unistd::close,
+};
 use rand::Rng;
 use tracing::debug;
 
@@ -236,6 +239,7 @@ impl TcpIp {
 
     pub fn synack_finack() {
         use nix::sys::socket::{AddressFamily, SockFlag, SockProtocol, SockType};
+        use std::{thread, time::Duration};
 
         let localip = "127.0.0.1";
         let port = 8080;
@@ -243,7 +247,7 @@ impl TcpIp {
         let syn = TcpIp {
             dest_ip: localip.to_string(),
             dest_port: port,
-            tcp_flag: TcpFlag::Ack,
+            tcp_flag: TcpFlag::Syn,
             seq_number: [0; 4],
             ack_number: [0; 4],
             data: vec![],
@@ -259,7 +263,8 @@ impl TcpIp {
         // defer syscall.Close(sendfd)
         let ack = syn.start_tcp_connection(send_fd).unwrap().unwrap();
         debug!("TCP Connection is success!!");
-        // time.Sleep(10 * time.Millisecond);
+
+        thread::sleep(Duration::from_millis(1000));
 
         let fin = TcpIp {
             dest_ip: localip.to_string(),
@@ -271,6 +276,7 @@ impl TcpIp {
         };
         fin.start_tcp_connection(send_fd).unwrap();
         debug!("TCP Connection Close is success!!");
+        close(send_fd).unwrap();
     }
 }
 
