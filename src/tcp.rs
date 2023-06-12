@@ -295,8 +295,13 @@ fn recv_ip_socket(fd: RawFd, dest_ip: [u8; 4]) -> TcpHeader {
         if !buf.is_empty() {
             let ip = IpHeader::parse(buf[0..20].to_vec());
             debug!(?ip.protocol, ?ip.source_ip_addr, ?dest_ip);
+            debug!(
+                "condition: {}",
+                ip.protocol == 0x06 && ip.source_ip_addr == dest_ip
+            );
             if ip.protocol == 0x06 && ip.source_ip_addr == dest_ip {
                 let synack = TcpHeader::parse(buf[20..].to_vec());
+                debug!(?synack.control_flags);
                 if synack.control_flags == SYNACK {
                     debug!("recv {:?}", &buf[20..]);
                     return synack;
