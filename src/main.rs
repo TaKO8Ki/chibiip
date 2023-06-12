@@ -17,6 +17,7 @@ fn main() {
         "arp" => arp::send_arp(&args[2], &args[3]),
         "udp" => udp::send_udp(&args[2], &args[3]),
         "icmp" => icmp::send_icmp(&args[2], &args[3]),
+        "tcp" => tcp::TcpIp::synack_finack(),
         _ => (),
     }
 }

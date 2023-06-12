@@ -121,7 +121,7 @@ impl TcpHeader {
 }
 
 #[derive(Debug)]
-struct TcpIp {
+pub struct TcpIp {
     dest_ip: String,
     dest_port: u16,
     tcp_flag: TcpFlag,
@@ -234,7 +234,7 @@ impl TcpIp {
         Ok(None)
     }
 
-    fn synack_finack(&self) {
+    pub fn synack_finack() {
         use nix::sys::socket::{AddressFamily, SockFlag, SockProtocol, SockType};
 
         let localip = "127.0.0.1";
