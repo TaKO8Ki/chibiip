@@ -142,7 +142,7 @@ fn create_sequence_number() -> [u8; 4] {
 impl TcpIp {
     fn tcp_ip_packet(&self) -> Vec<u8> {
         let local_ip = crate::utils::iptobyte(&self.dest_ip);
-
+        debug!(?local_ip);
         let mut ipheader = IpHeader::new(local_ip.clone(), local_ip, crate::ip::IpProtocol::Tcp);
 
         let mut tcpheader = TcpHeader::new(
