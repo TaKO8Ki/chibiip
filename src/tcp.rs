@@ -236,11 +236,10 @@ impl TcpIp {
         Ok(None)
     }
 
-    pub fn synack_finack() {
+    pub fn synack_finack(localip: &str) {
         use nix::sys::socket::{AddressFamily, SockFlag, SockProtocol, SockType};
         use std::{thread, time::Duration};
 
-        let localip = "127.0.0.1";
         let port = 8080;
 
         let syn = TcpIp {
