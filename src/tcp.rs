@@ -204,7 +204,6 @@ impl TcpIp {
     ) -> Result<Option<Self>, Box<dyn std::error::Error>> {
         let syn_packet = self.tcp_ip_packet();
         let dest_ip = iptobyte(&self.dest_ip);
-        let dest_port = self.dest_port.to_be_bytes();
 
         let [a, b, c, d] = dest_ip[..] else {
             panic!("Invalid IP address: {}", self.dest_ip)
@@ -212,7 +211,7 @@ impl TcpIp {
         let addr = SockaddrIn::new(a, b, c, d, self.dest_port);
 
         let ret = sendto(send_fd, &syn_packet, &addr, MsgFlags::empty()).unwrap();
-        debug!("Send SYN packet");
+        debug!(?syn_packet, "Send SYN packet");
 
         let synack = recv_ip_socket(send_fd, dest_ip);
 
