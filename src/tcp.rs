@@ -156,7 +156,7 @@ impl TcpIp {
                 tcpheader.sequence_number = self.seq_number;
                 tcpheader.acknowlege_number = self.ack_number;
             }
-            TcpFlag::Syn => tcpheader.sequence_number = [18, 180, 170, 36],
+            TcpFlag::Syn => tcpheader.sequence_number = [26, 22, 31, 152],
         }
 
         ipheader.total_packet_length = if let TcpFlag::PshAck = self.tcp_flag {
