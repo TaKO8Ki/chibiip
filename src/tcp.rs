@@ -298,7 +298,7 @@ fn calc_sequence_number(packet: [u8; 4], add: u32) -> [u8; 4] {
 }
 
 fn recv_ip_socket(fd: RawFd, dest_ip: [u8; 4]) -> TcpHeader {
-    let mut buf = vec![0; 4096];
+    let mut buf = vec![0; 128];
     loop {
         let (ret, addr) = recvfrom::<SockaddrIn>(fd, &mut buf).unwrap();
         debug!(?ret, ?addr);
