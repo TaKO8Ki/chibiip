@@ -82,7 +82,7 @@ impl TcpHeader {
             acknowlege_number: [0x00, 0x00, 0x00, 0x00],
             header_length: 0x00,
             control_flags: tcpflag_byte,
-            window_size: [0x16, 0xd0],
+            window_size: [0xfa, 0xf0],
             checksum: [0x00, 0x00],
             urgent_pointer: [0x00, 0x00],
             tcp_option_byte: vec![],
