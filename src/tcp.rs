@@ -156,7 +156,7 @@ impl TcpIp {
                 tcpheader.sequence_number = self.seq_number;
                 tcpheader.acknowlege_number = self.ack_number;
             }
-            TcpFlag::Syn => tcpheader.sequence_number = [26, 22, 31, 152],
+            TcpFlag::Syn => tcpheader.sequence_number = create_sequence_number(),
         }
 
         ipheader.total_packet_length = if let TcpFlag::PshAck = self.tcp_flag {
@@ -167,7 +167,7 @@ impl TcpIp {
 
         let num = tcpheader.to_byte_array().len();
         ipheader.check_sum = checksum(sum_byte_arr(ipheader.to_byte_array()));
-        tcpheader.header_length = (num as u8) << 2;
+        tcpheader.header_length = (num << 2) as u8;
 
         let dummy_header = if let TcpFlag::PshAck = self.tcp_flag {
             TcpDummyHeader::new(ipheader.clone(), (num + self.data.len()) as u8)
@@ -271,7 +271,7 @@ impl TcpIp {
                 send_fd,
                 nix::libc::IPPROTO_IP,
                 nix::libc::IP_HDRINCL,
-                (&0 as *const nix::libc::c_int) as *const nix::libc::c_void,
+                (&1 as *const nix::libc::c_int) as *const nix::libc::c_void,
                 std::mem::size_of::<nix::libc::c_int>() as nix::libc::socklen_t,
             )
         };
