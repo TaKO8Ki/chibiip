@@ -270,7 +270,7 @@ impl TcpIp {
         let ack = syn.start_tcp_connection(send_fd).unwrap().unwrap();
         debug!("TCP Connection is success!!");
 
-        thread::sleep(Duration::from_millis(1000));
+        thread::sleep(Duration::from_millis(10));
 
         let fin = TcpIp {
             dest_ip: localip.to_string(),
