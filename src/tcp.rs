@@ -216,10 +216,7 @@ impl TcpIp {
         let synack = recv_ip_socket(send_fd, dest_ip);
 
         // 0x12 = SYNACK, 0x11 = FINACK, 0x10 = ACK
-        if synack.control_flags == SYNACK
-            || synack.control_flags == FINACK
-            || synack.control_flags == ACK
-        {
+        if synack.control_flags == SYNACK || synack.control_flags == FINACK {
             let ack = TcpIp {
                 dest_ip: self.dest_ip.clone(),
                 dest_port: self.dest_port,
