@@ -237,7 +237,7 @@ impl TcpIp {
         use nix::sys::socket::{AddressFamily, SockFlag, SockProtocol, SockType};
         use std::{thread, time::Duration};
 
-        let port = 8080;
+        let port = 22;
 
         let syn = TcpIp {
             dest_ip: localip.to_string(),
