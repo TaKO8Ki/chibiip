@@ -267,6 +267,7 @@ impl TcpIp {
         let ack = syn.start_tcp_connection(send_fd).unwrap().unwrap();
         debug!("TCP Connection is success!!");
 
+        // FIXME: use threads
         thread::sleep(Duration::from_millis(10));
 
         let fin = TcpIp {
@@ -278,6 +279,64 @@ impl TcpIp {
             data: vec![],
         };
         fin.start_tcp_connection(send_fd).unwrap();
+        debug!("TCP Connection Close is success!!");
+        close(send_fd).unwrap();
+    }
+
+    pub fn synack_pshack(localip: &str) {
+        use nix::sys::socket::{AddressFamily, SockFlag, SockProtocol, SockType};
+        use std::{thread, time::Duration};
+
+        let port = 22;
+
+        let syn = TcpIp {
+            dest_ip: localip.to_string(),
+            dest_port: port,
+            tcp_flag: TcpFlag::Syn,
+            seq_number: [0; 4],
+            ack_number: [0; 4],
+            data: vec![],
+        };
+
+        let send_fd = socket(
+            AddressFamily::Inet,
+            SockType::Raw,
+            SockFlag::empty(),
+            SockProtocol::Tcp,
+        )
+        .unwrap();
+        unsafe {
+            nix::libc::setsockopt(
+                send_fd,
+                nix::libc::IPPROTO_IP,
+                nix::libc::IP_HDRINCL,
+                (&1 as *const nix::libc::c_int) as *const nix::libc::c_void,
+                std::mem::size_of::<nix::libc::c_int>() as nix::libc::socklen_t,
+            )
+        };
+        let ack = syn.start_tcp_connection(send_fd).unwrap().unwrap();
+        debug!("TCP Connection is success!!");
+
+        // FIXME: use threads
+        thread::sleep(Duration::from_millis(10));
+
+        let fin = TcpIp {
+            dest_ip: localip.to_string(),
+            dest_port: port,
+            tcp_flag: TcpFlag::FinAck,
+            seq_number: ack.seq_number,
+            ack_number: ack.ack_number,
+            data: "\n".as_bytes().to_vec(),
+        };
+        let psh_packet = fin.tcp_ip_packet();
+        let dest_ip = iptobyte(&fin.dest_ip);
+        let [a, b, c, d] = dest_ip[..] else {
+            panic!("Invalid IP address: {}", fin.dest_ip)
+        };
+        let addr = SockaddrIn::new(a, b, c, d, fin.dest_port);
+
+        let ret = sendto(send_fd, &psh_packet, &addr, MsgFlags::empty()).unwrap();
+
         debug!("TCP Connection Close is success!!");
         close(send_fd).unwrap();
     }
