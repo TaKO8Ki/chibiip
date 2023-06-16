@@ -17,9 +17,9 @@ pub struct Arp {
     protocol_size: Vec<u8>,
     opcode: Vec<u8>,
     pub sender_mac_addr: Vec<u8>,
-    sender_ip_addr: Vec<u8>,
+    sender_ip_addr: [u8; 4],
     target_mac_addr: Vec<u8>,
-    target_ip_addr: Vec<u8>,
+    target_ip_addr: [u8; 4],
 }
 
 pub fn send_arp(ifname: &str, target_ip: &str) {
@@ -37,7 +37,7 @@ pub fn send_arp(ifname: &str, target_ip: &str) {
     );
     let arp_req = Arp::new(
         ni.mac_addr.to_vec(),
-        ni.ip_addr.to_be_bytes().to_vec(),
+        ni.ip_addr.to_be_bytes(),
         iptobyte(target_ip),
     );
 
@@ -51,7 +51,7 @@ pub fn send_arp(ifname: &str, target_ip: &str) {
 }
 
 impl Arp {
-    pub fn new(mac_addr: Vec<u8>, sender_ip_addr: Vec<u8>, target_ip_addr: Vec<u8>) -> Self {
+    pub fn new(mac_addr: Vec<u8>, sender_ip_addr: [u8; 4], target_ip_addr: [u8; 4]) -> Self {
         Self {
             hardware_type: vec![0x00, 0x01],
             protocol_type: vec![0x08, 0x00],
@@ -83,9 +83,9 @@ impl Arp {
         byte.append(&mut self.protocol_size.clone());
         byte.append(&mut self.opcode.clone());
         byte.append(&mut self.sender_mac_addr.clone());
-        byte.append(&mut self.sender_ip_addr.clone());
+        byte.append(&mut self.sender_ip_addr.to_vec());
         byte.append(&mut self.target_mac_addr.clone());
-        byte.append(&mut self.target_ip_addr.clone());
+        byte.append(&mut self.target_ip_addr.to_vec());
         byte
     }
 
@@ -154,11 +154,11 @@ impl Arp {
             sender_mac_addr: vec![
                 packet[8], packet[9], packet[10], packet[11], packet[12], packet[13],
             ],
-            sender_ip_addr: vec![packet[14], packet[15], packet[16], packet[17]],
+            sender_ip_addr: [packet[14], packet[15], packet[16], packet[17]],
             target_mac_addr: vec![
                 packet[18], packet[19], packet[20], packet[21], packet[22], packet[23],
             ],
-            target_ip_addr: vec![packet[24], packet[25], packet[26], packet[27]],
+            target_ip_addr: [packet[24], packet[25], packet[26], packet[27]],
         }
     }
 }
